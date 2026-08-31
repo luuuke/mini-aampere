@@ -39,6 +39,21 @@ The development seed creates these users. They all use the password `Aampere123!
 | Dealer | `marco@eurovolt.test` | Marco Rossi   | EuroVolt Motors |
 | Dealer | `lea@rhein-auto.test` | Léa Martin    | Rhein Auto      |
 
+## Authentication
+
+Log in with a seeded user's email and password:
+
+```bash
+curl -X POST http://localhost:3000/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@aampere.test","password":"Aampere123!"}'
+```
+
+The response contains an `accessToken` and the safe user profile. Send the token to
+protected endpoints as `Authorization: Bearer <accessToken>`. Routes are protected by
+default; backend controllers can use `@Public()` for exceptions and `@Roles(...)` for
+role-based access.
+
 ## Checks
 
 Run these commands from `backend/`:
