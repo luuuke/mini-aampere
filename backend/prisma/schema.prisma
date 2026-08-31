@@ -12,6 +12,11 @@ enum UserRole {
   DEALER
 }
 
+enum AuctionResult {
+  SOLD
+  UNSOLD
+}
+
 model User {
   id             String   @id @default(uuid()) @db.Uuid
   email          String   @unique
@@ -21,4 +26,64 @@ model User {
   role           UserRole
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  bids Bid[]
+}
+
+model Vehicle {
+  id                   String   @id @default(uuid()) @db.Uuid
+  vin                  String   @unique
+  make                 String
+  model                String
+  year                 Int
+  mileageKm            Int
+  batteryCapacityKwh   Decimal  @db.Decimal(5, 2)
+  batteryHealthPercent Decimal  @db.Decimal(5, 2)
+  rangeKm              Int
+  registrationDate     DateTime @db.Date
+  conditionNotes       String?  @db.Text
+  photoUrls            String[] @default([])
+  city                 String
+  country              String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  auctions Auction[]
+}
+
+model Auction {
+  id                String         @id @default(uuid()) @db.Uuid
+  vehicleId         String         @db.Uuid
+  startsAt          DateTime
+  endsAt            DateTime
+  startingPrice     Int
+  reservePrice      Int
+  minIncrement      Int
+  result            AuctionResult?
+  winningBidId      String?        @unique @db.Uuid
+  resultConfirmedAt DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  vehicle    Vehicle @relation(fields: [vehicleId], references: [id])
+  bids       Bid[]   @relation("AuctionBids")
+  winningBid Bid?    @relation("WinningBid", fields: [winningBidId], references: [id], onDelete: SetNull)
+
+  @@index([startsAt, endsAt])
+  @@index([vehicleId])
+}
+
+model Bid {
+  id        String   @id @default(uuid()) @db.Uuid
+  auctionId String   @db.Uuid
+  dealerId  String   @db.Uuid
+  amount    Int
+  placedAt  DateTime @default(now())
+
+  auction    Auction  @relation("AuctionBids", fields: [auctionId], references: [id])
+  dealer     User     @relation(fields: [dealerId], references: [id])
+  wonAuction Auction? @relation("WinningBid")
+
+  @@index([auctionId, amount, placedAt])
+  @@index([dealerId, placedAt])
 }
