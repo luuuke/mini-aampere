@@ -7,4 +7,18 @@ datasource db {
   provider = "postgresql"
 }
 
-// Challenge models will be added as application features are implemented.
+enum UserRole {
+  ADMIN
+  DEALER
+}
+
+model User {
+  id             String   @id @default(uuid()) @db.Uuid
+  email          String   @unique
+  passwordHash   String
+  name           String
+  dealershipName String?
+  role           UserRole
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

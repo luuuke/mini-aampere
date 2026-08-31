@@ -23,8 +23,21 @@ cd backend
 cp .env.example .env
 npm install
 npm run prisma:generate
+npm run prisma:migrate
+npm run prisma:seed
 npm run start:dev
 ```
+
+## Seeded users
+
+The development seed creates these users. They all use the password `Aampere123!`.
+
+| Role   | Email                 | Name          | Dealership      |
+| ------ | --------------------- | ------------- | --------------- |
+| Admin  | `admin@aampere.test`  | Aampere Admin | —               |
+| Dealer | `sofia@iberiaev.test` | Sofia García  | Iberia EV       |
+| Dealer | `marco@eurovolt.test` | Marco Rossi   | EuroVolt Motors |
+| Dealer | `lea@rhein-auto.test` | Léa Martin    | Rhein Auto      |
 
 ## Checks
 
