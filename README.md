@@ -10,10 +10,10 @@ This repository is the starting point for the Aampere full-stack challenge.
 
 ## Run the backend
 
-Start PostgreSQL from the repository root:
+Start PostgreSQL and the Adminer database UI from the repository root:
 
 ```bash
-docker-compose up -d postgres
+docker-compose up -d postgres adminer
 ```
 
 Install and start the API:
@@ -50,3 +50,13 @@ npm run build
 npm test
 npm run test:e2e
 ```
+
+## Database UI
+
+Open [Adminer](http://localhost:8080) and sign in with:
+
+- System: `PostgreSQL`
+- Server: `postgres`
+- Username: `aampere`
+- Password: `aampere`
+- Database: `aampere`
