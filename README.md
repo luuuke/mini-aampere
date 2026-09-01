@@ -28,6 +28,20 @@ npm run prisma:seed
 npm run start:dev
 ```
 
+## Run the frontend
+
+In another terminal, install and start the Next.js application:
+
+```bash
+cd frontend
+cp .env.example .env.local
+npm install
+npm run dev
+```
+
+Open [http://localhost:3001](http://localhost:3001). The frontend uses port 3001 so the API
+can continue to use port 3000.
+
 ## Seeded users
 
 The development seed creates these users. They all use the password `Aampere123!`.
