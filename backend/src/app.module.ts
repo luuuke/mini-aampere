@@ -4,6 +4,7 @@ import { APP_PIPE } from '@nestjs/core';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
+import { BidsModule } from './bids/bids.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { AuctionsModule } from './auctions/auctions.module.js';
 
@@ -13,6 +14,7 @@ import { AuctionsModule } from './auctions/auctions.module.js';
     PrismaModule,
     AuthModule,
     AuctionsModule,
+    BidsModule,
   ],
   controllers: [AppController],
   providers: [
