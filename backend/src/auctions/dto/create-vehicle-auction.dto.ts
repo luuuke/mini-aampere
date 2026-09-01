@@ -6,6 +6,7 @@ import {
   IsISO8601,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsString,
   IsUrl,
   Length,
@@ -130,11 +131,13 @@ export class CreateAuctionDto {
 
 export class CreateVehicleAuctionDto {
   @IsDefined()
+  @IsObject()
   @ValidateNested()
   @Type(() => CreateVehicleDto)
   vehicle: CreateVehicleDto;
 
   @IsDefined()
+  @IsObject()
   @ValidateNested()
   @Type(() => CreateAuctionDto)
   auction: CreateAuctionDto;

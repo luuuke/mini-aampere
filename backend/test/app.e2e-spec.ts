@@ -331,6 +331,20 @@ describe('App (e2e)', () => {
         body: { vehicle: validCreateAuctionBody().vehicle },
       },
       {
+        name: 'an array-shaped vehicle',
+        body: {
+          ...validCreateAuctionBody(),
+          vehicle: [],
+        },
+      },
+      {
+        name: 'an array-shaped auction',
+        body: {
+          ...validCreateAuctionBody(),
+          auction: [],
+        },
+      },
+      {
         name: 'a server-owned auction field',
         body: {
           ...validCreateAuctionBody(),
