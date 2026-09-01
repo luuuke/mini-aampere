@@ -1,19 +1,28 @@
+import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { BidsService } from './bids.service.js';
 
 describe('BidsService', () => {
+  const runTransaction = vi.fn();
   const findAuction = vi.fn();
   const findLatestBid = vi.fn();
   const createBid = vi.fn();
-  const service = new BidsService({
+  const transaction = {
     auction: { findFirst: findAuction },
     bid: { findFirst: findLatestBid, create: createBid },
+  };
+  const service = new BidsService({
+    $transaction: runTransaction,
   } as unknown as PrismaService);
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2030-01-01T12:00:00.000Z'));
+    runTransaction.mockImplementation(
+      async (callback: (client: typeof transaction) => unknown) =>
+        callback(transaction),
+    );
   });
 
   afterEach(() => {
@@ -23,12 +32,23 @@ describe('BidsService', () => {
   it('creates a bid using only dealer-safe auction data and the dealer own latest bid', async () => {
     findAuction.mockResolvedValue(liveAuction());
     findLatestBid.mockResolvedValue({ amount: 21_000 });
-    createBid.mockResolvedValue({ id: 'bid-id' });
-
-    await service.placeBid({
+    const createdBid = {
       auctionId: 'auction-id',
       dealerId: 'dealer-id',
       amount: 21_250,
+    };
+    createBid.mockResolvedValue(createdBid);
+
+    await expect(
+      service.placeBid({
+        auctionId: 'auction-id',
+        dealerId: 'dealer-id',
+        amount: 21_250,
+      }),
+    ).resolves.toEqual(createdBid);
+
+    expect(runTransaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     });
 
     const auctionQuery = findAuction.mock.calls[0]?.[0];
@@ -82,6 +102,49 @@ describe('BidsService', () => {
 
     expect(findLatestBid).not.toHaveBeenCalled();
     expect(createBid).not.toHaveBeenCalled();
+  });
+
+  it('retries the whole transaction after a serializable write conflict', async () => {
+    const writeConflict = new Prisma.PrismaClientKnownRequestError(
+      'Transaction write conflict',
+      { code: 'P2034', clientVersion: '7.10.0' },
+    );
+    findAuction.mockResolvedValue(liveAuction());
+    findLatestBid.mockResolvedValue({ amount: 21_000 });
+    createBid.mockRejectedValueOnce(writeConflict).mockResolvedValue({
+      auctionId: 'auction-id',
+      dealerId: 'dealer-id',
+      amount: 21_250,
+    });
+
+    await service.placeBid({
+      auctionId: 'auction-id',
+      dealerId: 'dealer-id',
+      amount: 21_250,
+    });
+
+    expect(runTransaction).toHaveBeenCalledTimes(2);
+    expect(findAuction).toHaveBeenCalledTimes(2);
+    expect(findLatestBid).toHaveBeenCalledTimes(2);
+    expect(createBid).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops retrying after three serializable write conflicts', async () => {
+    const writeConflict = new Prisma.PrismaClientKnownRequestError(
+      'Transaction write conflict',
+      { code: 'P2034', clientVersion: '7.10.0' },
+    );
+    runTransaction.mockRejectedValue(writeConflict);
+
+    await expect(
+      service.placeBid({
+        auctionId: 'auction-id',
+        dealerId: 'dealer-id',
+        amount: 21_250,
+      }),
+    ).rejects.toBe(writeConflict);
+
+    expect(runTransaction).toHaveBeenCalledTimes(3);
   });
 
   it.each([

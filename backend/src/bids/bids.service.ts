@@ -4,23 +4,49 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { validateBid } from './bid-rules.js';
+
+const MAX_TRANSACTION_ATTEMPTS = 3;
+
+interface PlaceBidInput {
+  auctionId: string;
+  dealerId: string;
+  amount: number;
+}
 
 @Injectable()
 export class BidsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async placeBid({
-    auctionId,
-    dealerId,
-    amount,
-  }: {
-    auctionId: string;
-    dealerId: string;
-    amount: number;
-  }) {
-    const auction = await this.prisma.auction.findFirst({
+  async placeBid(input: PlaceBidInput) {
+    for (let attempt = 1; attempt <= MAX_TRANSACTION_ATTEMPTS; attempt += 1) {
+      try {
+        return await this.prisma.$transaction(
+          (transaction) => this.placeBidInTransaction(transaction, input),
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+      } catch (error) {
+        const shouldRetry =
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034' &&
+          attempt < MAX_TRANSACTION_ATTEMPTS;
+
+        if (!shouldRetry) {
+          throw error;
+        }
+      }
+    }
+
+    throw new Error('Bid transaction retry loop completed unexpectedly.');
+  }
+
+  private async placeBidInTransaction(
+    transaction: Prisma.TransactionClient,
+    { auctionId, dealerId, amount }: PlaceBidInput,
+  ) {
+    const auction = await transaction.auction.findFirst({
       where: {
         id: auctionId,
       },
@@ -36,7 +62,7 @@ export class BidsService {
       throw new NotFoundException('Auction not found');
     }
 
-    const latestBid = await this.prisma.bid.findFirst({
+    const latestBid = await transaction.bid.findFirst({
       where: {
         auctionId: auctionId,
         dealerId: dealerId,
@@ -68,7 +94,7 @@ export class BidsService {
       }
     }
 
-    await this.prisma.bid.create({
+    return transaction.bid.create({
       data: {
         auctionId,
         dealerId,
