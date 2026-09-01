@@ -7,6 +7,7 @@ import { AppModule } from '../src/app.module.js';
 import { Roles } from '../src/auth/decorators/roles.decorator.js';
 import { UserRole } from '../src/generated/prisma/client.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { AuctionsService } from '../src/auctions/auctions.service.js';
 
 @Controller('test-only')
 class ProtectedTestController {
@@ -24,6 +25,7 @@ class ProtectedTestController {
 
 describe('App (e2e)', () => {
   let app: INestApplication<App>;
+  const confirmResult = vi.fn();
 
   beforeAll(async () => {
     process.env['JWT_SECRET'] = 'e2e-test-secret';
@@ -64,6 +66,11 @@ describe('App (e2e)', () => {
     })
       .overrideProvider(PrismaService)
       .useValue(prisma)
+      .overrideProvider(AuctionsService)
+      .useValue({
+        listDealerAuctions: vi.fn(),
+        confirmResult,
+      })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -141,6 +148,95 @@ describe('App (e2e)', () => {
       .get('/test-only/admin')
       .set('Authorization', `Bearer ${adminLogin.body.accessToken}`)
       .expect(200, { role: UserRole.ADMIN });
+  });
+
+  describe('admin auction result confirmation', () => {
+    const auctionId = '20000000-0000-4000-8000-000000000003';
+
+    beforeEach(() => {
+      confirmResult.mockReset();
+    });
+
+    it('lets an admin confirm sold without accepting a winning bid id', async () => {
+      const confirmedAt = new Date('2030-01-01T12:00:00.000Z');
+      confirmResult.mockResolvedValue({
+        auctionId,
+        result: 'SOLD',
+        winningBid: {
+          id: '30000000-0000-4000-8000-000000000008',
+          dealerId: 'dealer-id',
+          amount: 20_000,
+          placedAt: confirmedAt,
+        },
+        resultConfirmedAt: confirmedAt,
+      });
+      const adminLogin = await login('admin@aampere.test');
+
+      const response = await request(app.getHttpServer())
+        .patch(`/admin/auctions/${auctionId}/result`)
+        .set('Authorization', `Bearer ${adminLogin.body.accessToken}`)
+        .send({ result: 'SOLD' })
+        .expect(200);
+
+      expect(confirmResult).toHaveBeenCalledWith({
+        auctionId,
+        result: 'SOLD',
+      });
+      expect(response.body).toMatchObject({
+        auctionId,
+        result: 'SOLD',
+        resultConfirmedAt: confirmedAt.toISOString(),
+        winningBid: {
+          id: '30000000-0000-4000-8000-000000000008',
+        },
+      });
+    });
+
+    it('does not let a dealer confirm a result', async () => {
+      const dealerLogin = await login('sofia@iberiaev.test');
+
+      await request(app.getHttpServer())
+        .patch(`/admin/auctions/${auctionId}/result`)
+        .set('Authorization', `Bearer ${dealerLogin.body.accessToken}`)
+        .send({ result: 'UNSOLD' })
+        .expect(403);
+
+      expect(confirmResult).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      { name: 'a missing result', body: {} },
+      { name: 'an invalid result', body: { result: 'PENDING' } },
+      {
+        name: 'a caller-provided winning bid id',
+        body: {
+          result: 'SOLD',
+          winningBidId: '30000000-0000-4000-8000-000000000008',
+        },
+      },
+    ])('rejects $name', async ({ body }) => {
+      const adminLogin = await login('admin@aampere.test');
+
+      await request(app.getHttpServer())
+        .patch(`/admin/auctions/${auctionId}/result`)
+        .set('Authorization', `Bearer ${adminLogin.body.accessToken}`)
+        .send(body)
+        .expect(400);
+
+      expect(confirmResult).not.toHaveBeenCalled();
+    });
+
+    it('rejects an invalid auction id before calling the service', async () => {
+      const adminLogin = await login('admin@aampere.test');
+
+      await request(app.getHttpServer())
+        .patch('/admin/auctions/not-a-uuid/result')
+        .set('Authorization', `Bearer ${adminLogin.body.accessToken}`)
+        .send({ result: 'UNSOLD' })
+        .expect(400);
+
+      expect(confirmResult).not.toHaveBeenCalled();
+    });
   });
 
   afterAll(async () => {
