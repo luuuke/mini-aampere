@@ -25,6 +25,7 @@ class ProtectedTestController {
 
 describe('App (e2e)', () => {
   let app: INestApplication<App>;
+  const createAuction = vi.fn();
   const confirmResult = vi.fn();
 
   beforeAll(async () => {
@@ -69,6 +70,7 @@ describe('App (e2e)', () => {
       .overrideProvider(AuctionsService)
       .useValue({
         listDealerAuctions: vi.fn(),
+        create: createAuction,
         confirmResult,
       })
       .compile();
@@ -239,6 +241,158 @@ describe('App (e2e)', () => {
     });
   });
 
+  describe('admin auction creation', () => {
+    beforeEach(() => {
+      createAuction.mockReset();
+    });
+
+    it('lets an admin create a vehicle and auction', async () => {
+      const input = validCreateAuctionBody();
+      createAuction.mockResolvedValue({
+        id: 'auction-id',
+        status: 'SCHEDULED',
+        startsAt: new Date(input.auction.startsAt),
+        endsAt: new Date('2030-01-03T09:00:00.000Z'),
+        startingPrice: input.auction.startingPrice,
+        reservePrice: input.auction.reservePrice,
+        minIncrement: input.auction.minIncrement,
+        result: null,
+        resultConfirmedAt: null,
+        winningBid: null,
+        vehicle: {
+          id: 'vehicle-id',
+          ...input.vehicle,
+          vin: '5YJ3E7EA1KF000001',
+          make: 'Tesla',
+          registrationDate: '2022-05-18',
+        },
+      });
+      const adminLogin = await login('admin@aampere.test');
+
+      const response = await request(app.getHttpServer())
+        .post('/admin/auctions')
+        .set('Authorization', `Bearer ${adminLogin.body.accessToken}`)
+        .send(input)
+        .expect(201);
+
+      expect(createAuction).toHaveBeenCalledWith({
+        vehicle: {
+          ...input.vehicle,
+          vin: '5YJ3E7EA1KF000001',
+          make: 'Tesla',
+          registrationDate: '2022-05-18',
+        },
+        auction: {
+          ...input.auction,
+          startsAt: '2030-01-02T09:00:00.000Z',
+        },
+      });
+      expect(response.body).toMatchObject({
+        id: 'auction-id',
+        status: 'SCHEDULED',
+        endsAt: '2030-01-03T09:00:00.000Z',
+        reservePrice: 28_000,
+        vehicle: {
+          id: 'vehicle-id',
+          vin: '5YJ3E7EA1KF000001',
+          registrationDate: '2022-05-18',
+        },
+      });
+    });
+
+    it('does not let a dealer create an auction', async () => {
+      const dealerLogin = await login('sofia@iberiaev.test');
+
+      await request(app.getHttpServer())
+        .post('/admin/auctions')
+        .set('Authorization', `Bearer ${dealerLogin.body.accessToken}`)
+        .send(validCreateAuctionBody())
+        .expect(403);
+
+      expect(createAuction).not.toHaveBeenCalled();
+    });
+
+    it('requires authentication', async () => {
+      await request(app.getHttpServer())
+        .post('/admin/auctions')
+        .send(validCreateAuctionBody())
+        .expect(401);
+
+      expect(createAuction).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      {
+        name: 'a missing vehicle',
+        body: { auction: validCreateAuctionBody().auction },
+      },
+      {
+        name: 'a missing auction',
+        body: { vehicle: validCreateAuctionBody().vehicle },
+      },
+      {
+        name: 'a server-owned auction field',
+        body: {
+          ...validCreateAuctionBody(),
+          auction: {
+            ...validCreateAuctionBody().auction,
+            result: 'SOLD',
+          },
+        },
+      },
+      {
+        name: 'a timezone-less start',
+        body: {
+          ...validCreateAuctionBody(),
+          auction: {
+            ...validCreateAuctionBody().auction,
+            startsAt: '2030-01-02T09:00:00',
+          },
+        },
+      },
+      {
+        name: 'a null end instead of an omitted end',
+        body: {
+          ...validCreateAuctionBody(),
+          auction: {
+            ...validCreateAuctionBody().auction,
+            endsAt: null,
+          },
+        },
+      },
+      {
+        name: 'a registration timestamp instead of a date',
+        body: {
+          ...validCreateAuctionBody(),
+          vehicle: {
+            ...validCreateAuctionBody().vehicle,
+            registrationDate: '2022-05-18T00:00:00Z',
+          },
+        },
+      },
+      {
+        name: 'a non-HTTP photo URL',
+        body: {
+          ...validCreateAuctionBody(),
+          vehicle: {
+            ...validCreateAuctionBody().vehicle,
+            photoUrls: ['ftp://example.com/vehicle.jpg'],
+          },
+        },
+      },
+    ])('rejects $name', async ({ body }) => {
+      const adminLogin = await login('admin@aampere.test');
+
+      await request(app.getHttpServer())
+        .post('/admin/auctions')
+        .set('Authorization', `Bearer ${adminLogin.body.accessToken}`)
+        .send(body)
+        .expect(400);
+
+      expect(createAuction).not.toHaveBeenCalled();
+    });
+  });
+
   afterAll(async () => {
     await app?.close();
   });
@@ -247,5 +401,31 @@ describe('App (e2e)', () => {
     return request(app.getHttpServer())
       .post('/auth/login')
       .send({ email, password });
+  }
+
+  function validCreateAuctionBody() {
+    return {
+      vehicle: {
+        vin: ' 5yj3e7ea1kf000001 ',
+        make: ' Tesla ',
+        model: 'Model 3 Long Range',
+        year: 2022,
+        mileageKm: 48_500,
+        batteryCapacityKwh: 75,
+        batteryHealthPercent: 93.5,
+        rangeKm: 560,
+        registrationDate: ' 2022-05-18 ',
+        conditionNotes: 'Minor stone chips on the front bumper.',
+        photoUrls: ['https://example.com/vehicle.jpg'],
+        city: 'Madrid',
+        country: 'Spain',
+      },
+      auction: {
+        startsAt: ' 2030-01-02T09:00:00.000Z ',
+        startingPrice: 24_000,
+        reservePrice: 28_000,
+        minIncrement: 250,
+      },
+    };
   }
 });
