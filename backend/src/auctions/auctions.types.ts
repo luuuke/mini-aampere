@@ -21,3 +21,32 @@ export interface DealerAuctionListItem {
     country: string;
   };
 }
+
+export interface AdminAuctionCreationResult {
+  id: string;
+  status: AuctionStatus;
+  startsAt: Date;
+  endsAt: Date;
+  startingPrice: number;
+  reservePrice: number;
+  minIncrement: number;
+  result: 'SOLD' | 'UNSOLD' | null;
+  resultConfirmedAt: Date | null;
+  winningBid: null;
+  vehicle: {
+    id: string;
+    vin: string;
+    make: string;
+    model: string;
+    year: number;
+    mileageKm: number;
+    batteryCapacityKwh: number;
+    batteryHealthPercent: number;
+    rangeKm: number;
+    registrationDate: string;
+    conditionNotes: string | null;
+    photoUrls: string[];
+    city: string;
+    country: string;
+  };
+}

@@ -7,8 +7,14 @@ import {
 import { Prisma } from '../generated/prisma/client.js';
 import type { AuctionResult } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { resolveAuctionWindow } from './auction-creation-rules.js';
 import { decideAuctionResult } from './auction-result-rules.js';
-import type { AuctionStatus, DealerAuctionListItem } from './auctions.types.js';
+import type {
+  AdminAuctionCreationResult,
+  AuctionStatus,
+  DealerAuctionListItem,
+} from './auctions.types.js';
+import type { CreateVehicleAuctionDto } from './dto/create-vehicle-auction.dto.js';
 
 const MAX_TRANSACTION_ATTEMPTS = 3;
 
@@ -54,6 +60,125 @@ function compareDealerAuctions(
 @Injectable()
 export class AuctionsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async create(
+    createVehicleAuctionDto: CreateVehicleAuctionDto,
+  ): Promise<AdminAuctionCreationResult> {
+    const startsAt = new Date(createVehicleAuctionDto.auction.startsAt);
+    const requestedEndsAt = createVehicleAuctionDto.auction.endsAt
+      ? new Date(createVehicleAuctionDto.auction.endsAt)
+      : undefined;
+    const windowResolution = resolveAuctionWindow({
+      startsAt,
+      endsAt: requestedEndsAt,
+      now: new Date(),
+    });
+
+    if (!windowResolution.valid) {
+      if (windowResolution.reason === 'END_NOT_AFTER_START') {
+        throw new BadRequestException('endsAt must be later than startsAt.');
+      }
+
+      throw new BadRequestException('endsAt must be in the future.');
+    }
+
+    const { vehicle, auction } = createVehicleAuctionDto;
+
+    try {
+      const createdAuction = await this.prisma.auction.create({
+        data: {
+          startsAt,
+          endsAt: windowResolution.endsAt,
+          startingPrice: auction.startingPrice,
+          reservePrice: auction.reservePrice,
+          minIncrement: auction.minIncrement,
+          vehicle: {
+            create: {
+              vin: vehicle.vin,
+              make: vehicle.make,
+              model: vehicle.model,
+              year: vehicle.year,
+              mileageKm: vehicle.mileageKm,
+              batteryCapacityKwh: vehicle.batteryCapacityKwh,
+              batteryHealthPercent: vehicle.batteryHealthPercent,
+              rangeKm: vehicle.rangeKm,
+              registrationDate: new Date(
+                `${vehicle.registrationDate}T00:00:00.000Z`,
+              ),
+              conditionNotes: vehicle.conditionNotes ?? null,
+              photoUrls: vehicle.photoUrls ?? [],
+              city: vehicle.city,
+              country: vehicle.country,
+            },
+          },
+        },
+        select: {
+          id: true,
+          startsAt: true,
+          endsAt: true,
+          startingPrice: true,
+          reservePrice: true,
+          minIncrement: true,
+          result: true,
+          resultConfirmedAt: true,
+          vehicle: {
+            select: {
+              id: true,
+              vin: true,
+              make: true,
+              model: true,
+              year: true,
+              mileageKm: true,
+              batteryCapacityKwh: true,
+              batteryHealthPercent: true,
+              rangeKm: true,
+              registrationDate: true,
+              conditionNotes: true,
+              photoUrls: true,
+              city: true,
+              country: true,
+            },
+          },
+        },
+      });
+
+      return {
+        id: createdAuction.id,
+        status: deriveAuctionStatus(
+          createdAuction.startsAt,
+          createdAuction.endsAt,
+          new Date(),
+        ),
+        startsAt: createdAuction.startsAt,
+        endsAt: createdAuction.endsAt,
+        startingPrice: createdAuction.startingPrice,
+        reservePrice: createdAuction.reservePrice,
+        minIncrement: createdAuction.minIncrement,
+        result: createdAuction.result,
+        resultConfirmedAt: createdAuction.resultConfirmedAt,
+        winningBid: null,
+        vehicle: {
+          ...createdAuction.vehicle,
+          registrationDate: createdAuction.vehicle.registrationDate
+            .toISOString()
+            .slice(0, 10),
+          batteryCapacityKwh:
+            createdAuction.vehicle.batteryCapacityKwh.toNumber(),
+          batteryHealthPercent:
+            createdAuction.vehicle.batteryHealthPercent.toNumber(),
+        },
+      };
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('A vehicle with this VIN already exists.');
+      }
+
+      throw error;
+    }
+  }
 
   async confirmResult(input: ConfirmResultInput) {
     for (let attempt = 1; attempt <= MAX_TRANSACTION_ATTEMPTS; attempt += 1) {
