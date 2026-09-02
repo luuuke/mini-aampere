@@ -1,5 +1,5 @@
-import { RoleGuard } from "@/components/auth/role-guard";
 import { AppShell } from "@/components/layout/app-shell";
+import { RoleGuard } from "@/features/auth/components/role-guard";
 
 export default function DealerLayout({ children }: LayoutProps<"/dealer">) {
   return (

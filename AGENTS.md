@@ -14,6 +14,7 @@ Follow any more specific `AGENTS.md` files inside these directories.
 - Keep the solution well-scoped, understandable, and easy to explain.
 - Preserve the blind-auction rules: dealers must never receive other dealers’ bid amounts or the reserve price.
 - Enforce auction timing, authorization, and bid validation on the backend.
+- Organize application code by business feature or vertical slice.
 - Prefer small, reviewable changes and avoid unrelated modifications.
 - Before finishing, run the relevant tests, lint, build checks, and run applicable smoke tests. Report
   anything that could not be verified.

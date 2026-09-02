@@ -2,9 +2,10 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FullPageLoader } from "@/components/auth/full-page-loader";
+import { FullPageLoader } from "@/features/auth/components/full-page-loader";
 import { useAuth } from "@/features/auth/auth-provider";
-import { getRoleHome, type UserRole } from "@/lib/auth";
+import { getRoleHome } from "@/features/auth/routing";
+import type { UserRole } from "@/features/auth/types";
 
 export function RoleGuard({
   children,

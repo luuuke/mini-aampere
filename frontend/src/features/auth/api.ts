@@ -1,5 +1,5 @@
 import { apiRequest } from "@/lib/api/client";
-import type { AuthSession } from "@/lib/auth";
+import type { AuthSession } from "@/features/auth/types";
 
 export interface LoginCredentials {
   email: string;

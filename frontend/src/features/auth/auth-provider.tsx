@@ -9,15 +9,14 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { UNAUTHORIZED_EVENT } from "@/lib/api/client";
 import {
   readStoredSession,
   removeStoredSession,
   storeSession,
   subscribeToStoredSession,
-  type AuthSession,
-  type AuthUser,
-} from "@/lib/auth";
+} from "@/features/auth/session";
+import type { AuthSession, AuthUser } from "@/features/auth/types";
+import { UNAUTHORIZED_EVENT } from "@/lib/api/client";
 
 interface AuthContextValue {
   accessToken: string | null;

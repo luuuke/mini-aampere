@@ -16,9 +16,17 @@ Build the frontend as a clear, polished B2B auction dashboard using Next.js and 
 
 - Use the Next.js App Router.
 - Use TanStack Query for client-side server state.
-- Keep API access in a dedicated API layer; do not scatter `fetch` calls across UI components.
+- Keep API access in dedicated modules within the owning feature; do not scatter `fetch` calls across UI components.
 - Centralize query keys and invalidate affected queries after mutations.
 - Do not duplicate server state into local/global state unless necessary.
+
+## Code organization
+
+- Organize application code by business feature or vertical slice, not primarily by technical layer.
+- Each feature should own its API access, domain types, components, validation, and tests where applicable.
+- Keep App Router route and layout files thin and use them mainly to compose feature code.
+- Place code in shared `components`, `lib`, or utility directories only when it is genuinely reused across multiple features.
+- Avoid broad global folders such as `services`, `types`, or `hooks` when their contents belong to one feature.
 
 ## Auction rules
 

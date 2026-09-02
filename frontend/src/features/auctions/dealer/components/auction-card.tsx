@@ -9,10 +9,10 @@ import {
   Gauge,
   MapPin,
 } from "lucide-react";
-import { AuctionCountdown } from "@/components/auctions/auction-countdown";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import type { DealerAuction } from "@/features/auctions/types";
+import { AuctionCountdown } from "@/features/auctions/dealer/components/auction-countdown";
+import type { DealerAuction } from "@/features/auctions/dealer/types";
 
 const numberFormatter = new Intl.NumberFormat("en", {
   maximumFractionDigits: 0,
@@ -88,7 +88,11 @@ export function AuctionCard({ auction }: { auction: DealerAuction }) {
         >
           <span
             aria-hidden="true"
-            className={isLive ? "size-1.5 rounded-full bg-primary" : "size-1.5 rounded-full bg-muted-foreground"}
+            className={
+              isLive
+                ? "size-1.5 rounded-full bg-primary"
+                : "size-1.5 rounded-full bg-muted-foreground"
+            }
           />
           {isLive ? "Live" : "Scheduled"}
         </Badge>
@@ -135,7 +139,10 @@ export function AuctionCard({ auction }: { auction: DealerAuction }) {
             <AuctionCountdown endsAt={auction.endsAt} />
           ) : (
             <div className="flex items-center gap-2 text-sm">
-              <CalendarDays aria-hidden="true" className="size-4 text-muted-foreground" />
+              <CalendarDays
+                aria-hidden="true"
+                className="size-4 text-muted-foreground"
+              />
               <span className="text-muted-foreground">Starts</span>
               <time dateTime={auction.startsAt} className="font-medium">
                 {dateFormatter.format(new Date(auction.startsAt))}

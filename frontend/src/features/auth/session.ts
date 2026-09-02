@@ -1,27 +1,10 @@
-export type UserRole = "ADMIN" | "DEALER";
-
-export interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
-  dealershipName: string | null;
-  role: UserRole;
-}
-
-export interface AuthSession {
-  accessToken: string;
-  user: AuthUser;
-}
+import type { AuthSession, AuthUser } from "@/features/auth/types";
 
 const AUTH_STORAGE_KEY = "aampere.auth.session";
 const AUTH_CHANGE_EVENT = "aampere:auth-change";
 
 let cachedRawSession: string | null | undefined;
 let cachedSession: AuthSession | null = null;
-
-export function getRoleHome(role: UserRole) {
-  return role === "DEALER" ? "/dealer/auctions" : "/admin/auctions";
-}
 
 function isSession(value: unknown): value is AuthSession {
   if (!value || typeof value !== "object") return false;

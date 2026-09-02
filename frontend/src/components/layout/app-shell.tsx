@@ -6,7 +6,8 @@ import { Gavel, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/auth-provider";
-import { getRoleHome, type UserRole } from "@/lib/auth";
+import { getRoleHome } from "@/features/auth/routing";
+import type { UserRole } from "@/features/auth/types";
 import { cn } from "@/lib/utils";
 
 export function AppShell({
