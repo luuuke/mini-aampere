@@ -34,3 +34,55 @@ export interface AdminAuction {
     reserveMet: boolean | null;
   };
 }
+
+export interface AdminAuctionDetail {
+  id: string;
+  status: AdminAuctionStatus;
+  startsAt: string;
+  endsAt: string;
+  startingPrice: number;
+  reservePrice: number;
+  minIncrement: number;
+  reserveMet: boolean;
+  result: AdminAuctionResult;
+  winningBidId: string | null;
+  resultConfirmedAt: string | null;
+  vehicle: {
+    id: string;
+    vin: string;
+    make: string;
+    model: string;
+    year: number;
+    mileageKm: number;
+    batteryCapacityKwh: number;
+    batteryHealthPercent: number;
+    rangeKm: number;
+    registrationDate: string;
+    conditionNotes: string | null;
+    photoUrls: string[];
+    city: string;
+    country: string;
+  };
+  bids: {
+    id: string;
+    amount: number;
+    placedAt: string;
+    dealer: {
+      id: string;
+      name: string;
+      dealershipName: string | null;
+    };
+  }[];
+}
+
+export interface ConfirmAuctionResultResponse {
+  auctionId: string;
+  result: Exclude<AdminAuctionResult, null>;
+  winningBid: {
+    id: string;
+    dealerId: string;
+    amount: number;
+    placedAt: string;
+  } | null;
+  resultConfirmedAt: string;
+}

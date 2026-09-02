@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
+  ArrowRight,
   CalendarClock,
   CarFront,
   CheckCircle2,
@@ -18,7 +20,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { listAdminAuctions } from "@/features/auctions/admin/api";
 import { AdminAuctionListSkeleton } from "@/features/auctions/admin/components/admin-auction-list-skeleton";
 import { adminAuctionQueryKeys } from "@/features/auctions/admin/query-keys";
@@ -233,12 +235,17 @@ function AuctionRow({ auction }: { auction: AdminAuction }) {
   const { vehicle } = auction;
 
   return (
-    <article className="grid grid-cols-2 gap-5 border-b p-4 last:border-b-0 sm:p-5 lg:grid-cols-[minmax(270px,1.4fr)_minmax(175px,0.9fr)_minmax(160px,0.75fr)_minmax(150px,0.75fr)_minmax(125px,0.6fr)] lg:items-center lg:px-6">
+    <article className="grid grid-cols-2 gap-5 border-b p-4 last:border-b-0 sm:p-5 lg:grid-cols-[minmax(270px,1.4fr)_minmax(175px,0.9fr)_minmax(160px,0.75fr)_minmax(150px,0.75fr)_minmax(155px,0.7fr)] lg:items-center lg:px-6">
       <div className="col-span-2 flex min-w-0 items-center gap-4 lg:col-span-1">
         <VehicleThumbnail auction={auction} />
         <div className="min-w-0">
           <h2 className="truncate font-heading text-base font-semibold tracking-tight">
-            {vehicle.year} {vehicle.make} {vehicle.model}
+            <Link
+              href={`/admin/auctions/${auction.id}`}
+              className="rounded-sm outline-none hover:text-primary focus-visible:ring-3 focus-visible:ring-ring/30"
+            >
+              {vehicle.year} {vehicle.make} {vehicle.model}
+            </Link>
           </h2>
           <p className="mt-1 truncate font-mono text-xs text-muted-foreground">
             {vehicle.vin}
@@ -285,7 +292,16 @@ function AuctionRow({ auction }: { auction: AdminAuction }) {
         <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground lg:hidden">
           Result
         </p>
-        <ResultBadge auction={auction} />
+        <div className="flex items-center justify-between gap-2 lg:justify-start">
+          <ResultBadge auction={auction} />
+          <Link
+            href={`/admin/auctions/${auction.id}`}
+            aria-label={`View ${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+            className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+          >
+            <ArrowRight aria-hidden="true" />
+          </Link>
+        </div>
       </div>
     </article>
   );
@@ -528,7 +544,7 @@ export function AdminAuctionsScreen() {
               </div>
             </div>
 
-            <div className="hidden grid-cols-[minmax(270px,1.4fr)_minmax(175px,0.9fr)_minmax(160px,0.75fr)_minmax(150px,0.75fr)_minmax(125px,0.6fr)] border-b bg-muted/35 px-6 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground lg:grid">
+            <div className="hidden grid-cols-[minmax(270px,1.4fr)_minmax(175px,0.9fr)_minmax(160px,0.75fr)_minmax(150px,0.75fr)_minmax(155px,0.7fr)] border-b bg-muted/35 px-6 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground lg:grid">
               <span>Vehicle</span>
               <span>Schedule</span>
               <span>Pricing</span>

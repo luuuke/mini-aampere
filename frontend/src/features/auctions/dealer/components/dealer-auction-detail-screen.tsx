@@ -18,11 +18,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { VehicleGallery } from "@/features/auctions/components/vehicle-gallery";
 import { getDealerAuction } from "@/features/auctions/dealer/api";
 import { AuctionCountdown } from "@/features/auctions/dealer/components/auction-countdown";
 import { AuctionDetailSkeleton } from "@/features/auctions/dealer/components/auction-detail-skeleton";
 import { DealerBidForm } from "@/features/auctions/dealer/components/dealer-bid-form";
-import { VehicleGallery } from "@/features/auctions/dealer/components/vehicle-gallery";
 import { dealerAuctionQueryKeys } from "@/features/auctions/dealer/query-keys";
 import type { DealerAuctionDetail } from "@/features/auctions/dealer/types";
 import type { DealerBidStatus } from "@/features/bids/dealer/types";
