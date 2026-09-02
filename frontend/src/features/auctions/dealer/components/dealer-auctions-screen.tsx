@@ -10,6 +10,8 @@ import { dealerAuctionQueryKeys } from "@/features/auctions/dealer/query-keys";
 import { useAuth } from "@/features/auth/auth-provider";
 import { ApiError } from "@/lib/api/client";
 
+const AUCTION_LIFECYCLE_REFRESH_INTERVAL_MS = 30_000;
+
 function getAuctionError(error: unknown) {
   if (error instanceof ApiError && error.status === 403) {
     return "Your account does not have access to dealer auctions.";
@@ -28,6 +30,10 @@ export function DealerAuctionsScreen() {
     enabled: Boolean(accessToken),
     retry: (failureCount, error) =>
       !(error instanceof ApiError && error.status === 401) && failureCount < 2,
+    refetchInterval: (query) =>
+      query.state.data?.length
+        ? AUCTION_LIFECYCLE_REFRESH_INTERVAL_MS
+        : false,
   });
 
   return (
