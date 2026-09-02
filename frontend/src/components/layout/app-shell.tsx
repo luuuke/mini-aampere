@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Gavel, LogOut } from "lucide-react";
+import { Gavel, ListChecks, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/auth-provider";
@@ -21,6 +21,13 @@ export function AppShell({
   const router = useRouter();
   const { logout, user } = useAuth();
   const auctionsHref = getRoleHome(role);
+  const navigationItems =
+    role === "DEALER"
+      ? [
+          { href: "/dealer/auctions", label: "Auctions", icon: Gavel },
+          { href: "/dealer/bids", label: "My bids", icon: ListChecks },
+        ]
+      : [{ href: "/admin/auctions", label: "Auctions", icon: Gavel }];
 
   function handleLogout() {
     logout();
@@ -41,18 +48,27 @@ export function AppShell({
           </Link>
 
           <nav aria-label="Primary" className="ml-2 hidden self-stretch sm:flex">
-            <Link
-              href={auctionsHref}
-              className={cn(
-                "flex items-center gap-2 border-b-2 px-3 text-sm font-medium transition-colors",
-                pathname === auctionsHref
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
-              )}
-            >
-              <Gavel aria-hidden="true" className="size-4" />
-              Auctions
-            </Link>
+            {navigationItems.map((item) => {
+              const isActive = pathname === item.href;
+              const Icon = item.icon;
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-2 border-b-2 px-3 text-sm font-medium transition-colors",
+                    isActive
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <Icon aria-hidden="true" className="size-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
           <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-4">
@@ -72,14 +88,28 @@ export function AppShell({
           </div>
         </div>
 
-        <nav aria-label="Primary mobile" className="border-t px-4 sm:hidden">
-          <Link
-            href={auctionsHref}
-            className="flex h-11 items-center gap-2 border-b-2 border-primary text-sm font-medium"
-          >
-            <Gavel aria-hidden="true" className="size-4" />
-            Auctions
-          </Link>
+        <nav aria-label="Primary mobile" className="flex border-t px-4 sm:hidden">
+          {navigationItems.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={isActive ? "page" : undefined}
+                className={cn(
+                  "flex h-11 items-center gap-2 border-b-2 px-3 text-sm font-medium transition-colors first:pl-0",
+                  isActive
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground",
+                )}
+              >
+                <Icon aria-hidden="true" className="size-4" />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
       </header>
 
