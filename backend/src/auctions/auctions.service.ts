@@ -13,6 +13,7 @@ import { resolveAuctionWindow } from './auction-creation-rules.js';
 import { decideAuctionResult } from './auction-result-rules.js';
 import { deriveAuctionStatus } from './auction-status.js';
 import type {
+  AdminAuctionListItem,
   AdminAuctionCreationResult,
   DealerAuctionDetail,
   DealerAuctionListItem,
@@ -47,6 +48,97 @@ function compareDealerAuctions(
 @Injectable()
 export class AuctionsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async listAdminAuctions(): Promise<AdminAuctionListItem[]> {
+    const now = new Date();
+
+    const auctions = await this.prisma.auction.findMany({
+      select: {
+        id: true,
+        startsAt: true,
+        endsAt: true,
+        startingPrice: true,
+        reservePrice: true,
+        minIncrement: true,
+        result: true,
+        resultConfirmedAt: true,
+        vehicle: {
+          select: {
+            id: true,
+            vin: true,
+            make: true,
+            model: true,
+            year: true,
+            mileageKm: true,
+            photoUrls: true,
+            city: true,
+            country: true,
+          },
+        },
+        _count: {
+          select: { bids: true },
+        },
+        bids: {
+          orderBy: [{ amount: 'desc' }, { placedAt: 'asc' }, { id: 'asc' }],
+          take: 1,
+          select: {
+            id: true,
+            amount: true,
+            placedAt: true,
+            dealerId: true,
+            dealer: {
+              select: { dealershipName: true },
+            },
+          },
+        },
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+
+    return auctions.map((auction): AdminAuctionListItem => {
+      const status = deriveAuctionStatus(auction.startsAt, auction.endsAt, now);
+      const highestBid = status === 'ENDED' ? auction.bids[0] : undefined;
+
+      return {
+        id: auction.id,
+        status,
+        startsAt: auction.startsAt,
+        endsAt: auction.endsAt,
+        startingPrice: auction.startingPrice,
+        reservePrice: auction.reservePrice,
+        minIncrement: auction.minIncrement,
+        result: auction.result,
+        resultConfirmedAt: auction.resultConfirmedAt,
+        vehicle: {
+          id: auction.vehicle.id,
+          vin: auction.vehicle.vin,
+          make: auction.vehicle.make,
+          model: auction.vehicle.model,
+          year: auction.vehicle.year,
+          mileageKm: auction.vehicle.mileageKm,
+          primaryPhotoUrl: auction.vehicle.photoUrls[0] ?? null,
+          city: auction.vehicle.city,
+          country: auction.vehicle.country,
+        },
+        bidSummary: {
+          count: auction._count.bids,
+          highestBid: highestBid
+            ? {
+                id: highestBid.id,
+                amount: highestBid.amount,
+                placedAt: highestBid.placedAt,
+                dealerId: highestBid.dealerId,
+                dealershipName: highestBid.dealer.dealershipName,
+              }
+            : null,
+          reserveMet:
+            status === 'ENDED'
+              ? Boolean(highestBid && highestBid.amount >= auction.reservePrice)
+              : null,
+        },
+      };
+    });
+  }
 
   async create(
     createVehicleAuctionDto: CreateVehicleAuctionDto,

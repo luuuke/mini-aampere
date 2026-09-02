@@ -55,6 +55,40 @@ export interface DealerAuctionDetail {
   };
 }
 
+export interface AdminAuctionListItem {
+  id: string;
+  status: AuctionStatus;
+  startsAt: Date;
+  endsAt: Date;
+  startingPrice: number;
+  reservePrice: number;
+  minIncrement: number;
+  result: 'SOLD' | 'UNSOLD' | null;
+  resultConfirmedAt: Date | null;
+  vehicle: {
+    id: string;
+    vin: string;
+    make: string;
+    model: string;
+    year: number;
+    mileageKm: number;
+    primaryPhotoUrl: string | null;
+    city: string;
+    country: string;
+  };
+  bidSummary: {
+    count: number;
+    highestBid: {
+      id: string;
+      amount: number;
+      placedAt: Date;
+      dealerId: string;
+      dealershipName: string | null;
+    } | null;
+    reserveMet: boolean | null;
+  };
+}
+
 export interface AdminAuctionCreationResult {
   id: string;
   status: AuctionStatus;

@@ -1,6 +1,8 @@
 import {
   Body,
   Controller,
+  Get,
+  Header,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -16,6 +18,12 @@ import { CreateVehicleAuctionDto } from './dto/create-vehicle-auction.dto.js';
 @Roles(UserRole.ADMIN)
 export class AdminAuctionsController {
   constructor(private readonly auctionsService: AuctionsService) {}
+
+  @Get()
+  @Header('Cache-Control', 'private, no-store')
+  list() {
+    return this.auctionsService.listAdminAuctions();
+  }
 
   @Post()
   create(@Body() createVehicleAuctionDto: CreateVehicleAuctionDto) {
