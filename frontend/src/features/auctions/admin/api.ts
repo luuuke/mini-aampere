@@ -3,6 +3,8 @@ import type {
   AdminAuctionDetail,
   AdminAuctionResult,
   ConfirmAuctionResultResponse,
+  CreateVehicleAuctionInput,
+  CreateVehicleAuctionResponse,
 } from "@/features/auctions/admin/types";
 import { apiRequest } from "@/lib/api/client";
 
@@ -29,4 +31,15 @@ export function confirmAdminAuctionResult(
       body: JSON.stringify({ result }),
     },
   );
+}
+
+export function createVehicleAuction(
+  token: string,
+  input: CreateVehicleAuctionInput,
+) {
+  return apiRequest<CreateVehicleAuctionResponse>("/admin/auctions", {
+    token,
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }

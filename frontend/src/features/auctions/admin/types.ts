@@ -86,3 +86,57 @@ export interface ConfirmAuctionResultResponse {
   } | null;
   resultConfirmedAt: string;
 }
+
+export interface CreateVehicleAuctionInput {
+  vehicle: {
+    vin: string;
+    make: string;
+    model: string;
+    year: number;
+    mileageKm: number;
+    batteryCapacityKwh: number;
+    batteryHealthPercent: number;
+    rangeKm: number;
+    registrationDate: string;
+    conditionNotes?: string;
+    photoUrls?: string[];
+    city: string;
+    country: string;
+  };
+  auction: {
+    startsAt: string;
+    endsAt?: string;
+    startingPrice: number;
+    reservePrice: number;
+    minIncrement: number;
+  };
+}
+
+export interface CreateVehicleAuctionResponse {
+  id: string;
+  status: AdminAuctionStatus;
+  startsAt: string;
+  endsAt: string;
+  startingPrice: number;
+  reservePrice: number;
+  minIncrement: number;
+  result: null;
+  resultConfirmedAt: null;
+  winningBid: null;
+  vehicle: {
+    id: string;
+    vin: string;
+    make: string;
+    model: string;
+    year: number;
+    mileageKm: number;
+    batteryCapacityKwh: number;
+    batteryHealthPercent: number;
+    rangeKm: number;
+    registrationDate: string;
+    conditionNotes: string | null;
+    photoUrls: string[];
+    city: string;
+    country: string;
+  };
+}

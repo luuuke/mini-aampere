@@ -17,6 +17,7 @@ import {
   RefreshCw,
   RotateCcw,
   Search,
+  Plus,
   TriangleAlert,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -161,6 +162,7 @@ function VehicleThumbnail({ auction }: { auction: AdminAuction }) {
         src={photoUrl}
         alt=""
         fill
+        unoptimized
         sizes="64px"
         className="object-cover"
         onError={() => setHasError(true)}
@@ -407,12 +409,21 @@ export function AdminAuctionsScreen() {
             Monitor every auction, reserve position, and result from one place.
           </p>
         </div>
-        {auctionsQuery.data ? (
-          <p className="text-sm text-muted-foreground">
-            {auctionsQuery.data.length}{" "}
-            {auctionsQuery.data.length === 1 ? "auction" : "auctions"}
-          </p>
-        ) : null}
+        <div className="flex items-center gap-4">
+          {auctionsQuery.data ? (
+            <p className="text-sm text-muted-foreground">
+              {auctionsQuery.data.length}{" "}
+              {auctionsQuery.data.length === 1 ? "auction" : "auctions"}
+            </p>
+          ) : null}
+          <Link
+            href="/admin/auctions/new"
+            className={buttonVariants({ size: "lg" })}
+          >
+            <Plus aria-hidden="true" />
+            New auction
+          </Link>
+        </div>
       </div>
 
       {auctionsQuery.isPending ? <AdminAuctionListSkeleton /> : null}

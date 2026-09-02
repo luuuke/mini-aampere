@@ -49,6 +49,7 @@ export function VehicleGallery({
             src={activePhoto}
             alt={`${vehicleName}, photo ${activeIndex + 1} of ${photoUrls.length}`}
             fill
+            unoptimized
             priority
             sizes="(min-width: 1024px) 65vw, 100vw"
             className="object-cover"
@@ -109,6 +110,7 @@ export function VehicleGallery({
                   src={photoUrl}
                   alt=""
                   fill
+                  unoptimized
                   sizes="96px"
                   className="object-cover"
                   onError={() => markPhotoFailed(photoUrl)}

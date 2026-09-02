@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Gavel, ListChecks, LogOut } from "lucide-react";
+import { Gavel, ListChecks, LogOut, SquarePlus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/auth-provider";
@@ -27,7 +27,14 @@ export function AppShell({
           { href: "/dealer/auctions", label: "Auctions", icon: Gavel },
           { href: "/dealer/bids", label: "My bids", icon: ListChecks },
         ]
-      : [{ href: "/admin/auctions", label: "Auctions", icon: Gavel }];
+      : [
+          { href: "/admin/auctions", label: "Auctions", icon: Gavel },
+          {
+            href: "/admin/auctions/new",
+            label: "Create auction",
+            icon: SquarePlus,
+          },
+        ];
 
   function handleLogout() {
     logout();
