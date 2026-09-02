@@ -108,7 +108,7 @@ npm test
 npm run test:e2e
 ```
 
-## Database UI
+## Database UI
 
 Open [Adminer](http://localhost:8080) and sign in with:
 
@@ -117,3 +117,39 @@ Open [Adminer](http://localhost:8080) and sign in with:
 - Username: `aampere`
 - Password: `aampere`
 - Database: `aampere`
+
+## Notes
+
+Development done mostly with Codex.
+The backend was mostly done endpoint-by-endpoint, with more sensitive parts written by hand (to also check out NestJS a bit).
+Frontend heavily built with prompting, after assembling an [AGENTS.md](frontend/AGENTS.md) to shape the buildout.
+
+Started with backend and the first endpoints, then added frontend and had backend + frontend grow simultaneously with frontend work mostly being done in a separate worktree.
+
+### Stack
+
+- **Backend:** NestJS + TypeScript, Prisma, PostgreSQL, Vitest.
+- **Frontend:** Next.js 16 (App Router) + TypeScript, TanStack Query, Tailwind CSS 4 + shadcn/ui and Base UI primitives, Lucide icons.
+- **Local environment:** Docker Compose runs PostgreSQL, the database initializer, API,
+  frontend, and Adminer together.
+
+### Decisions
+
+- Kept the repository as a lightweight monorepo with separate `backend` and `frontend` applications, also didnt introduce additional workspace tooling (like pnpm workspaces).
+- Organized code in both backend and frontend vertically by business feature or vertical slice, -> auction, bid, and authentication behavior stays scoped and easy to locate and explain.
+- Made the backend authoritative for auction timing, authorization, and bid validation. Frontend validation exists only to provide faster feedback.
+- Derived auction status from `startsAt` and `endsAt` rather than persisting a status value in the database (inconsistency trap).
+- Used separate admin and dealer endpoints and response shapes, each protected by role guards. Dealer database queries explicitly exclude the reserve price, other dealers’ bids, and bid-ranking information.
+- In case of concurrent requests: Wrapped bid placement in transactions with retries to for consistency in validation and insertion.
+- Added database constraints alongside DTO and service validation as defense in depth, e.g. positive bids, valid auction windows, and consistent result/winning-bid combinations.
+- Used client-side rendering with TanStack Query for simplicity.
+- API access and query keys remain inside their owning features, and affected queries are invalidated after mutations.
+
+### Scoping
+
+To keep the implementation focused and achievable within the challenge timeframe, I left out:
+
+- Pagination for auction and bid lists.
+- A separate NestJS admin module; the admin controllers currently reuse the auction domain service.
+- Toast notifications; mutations currently use inline success and error feedback.
+- Frontend component or end-to-end tests. Core auction rules, authorization, response shaping, and lifecycle boundaries are covered by backend tests.
