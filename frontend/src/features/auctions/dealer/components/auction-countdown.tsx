@@ -3,6 +3,42 @@
 import { useSyncExternalStore } from "react";
 import { Clock3 } from "lucide-react";
 
+let currentTime: number | null = null;
+let clockTimer: number | null = null;
+const clockSubscribers = new Set<() => void>();
+
+function publishCurrentTime() {
+  currentTime = Date.now();
+  clockSubscribers.forEach((subscriber) => subscriber());
+}
+
+function subscribeToClock(subscriber: () => void) {
+  clockSubscribers.add(subscriber);
+
+  if (clockTimer === null) {
+    currentTime = Date.now();
+    clockTimer = window.setInterval(publishCurrentTime, 1_000);
+  }
+
+  return () => {
+    clockSubscribers.delete(subscriber);
+
+    if (clockSubscribers.size === 0 && clockTimer !== null) {
+      window.clearInterval(clockTimer);
+      clockTimer = null;
+      currentTime = null;
+    }
+  };
+}
+
+function getCurrentTime() {
+  return currentTime;
+}
+
+function getServerTime() {
+  return null;
+}
+
 function formatRemaining(milliseconds: number) {
   const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
   const days = Math.floor(totalSeconds / 86_400);
@@ -21,13 +57,10 @@ function formatRemaining(milliseconds: number) {
 }
 
 export function AuctionCountdown({ endsAt }: { endsAt: string }) {
-  const now = useSyncExternalStore<number | null>(
-    (onStoreChange) => {
-      const timer = window.setInterval(onStoreChange, 1_000);
-      return () => window.clearInterval(timer);
-    },
-    Date.now,
-    () => null,
+  const now = useSyncExternalStore(
+    subscribeToClock,
+    getCurrentTime,
+    getServerTime,
   );
 
   const remaining = now === null ? null : new Date(endsAt).getTime() - now;
