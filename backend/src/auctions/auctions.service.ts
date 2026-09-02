@@ -13,6 +13,7 @@ import { resolveAuctionWindow } from './auction-creation-rules.js';
 import { decideAuctionResult } from './auction-result-rules.js';
 import { deriveAuctionStatus } from './auction-status.js';
 import type {
+  AdminAuctionDetail,
   AdminAuctionListItem,
   AdminAuctionCreationResult,
   DealerAuctionDetail,
@@ -48,6 +49,88 @@ function compareDealerAuctions(
 @Injectable()
 export class AuctionsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async getAdminAuctionDetail(auctionId: string): Promise<AdminAuctionDetail> {
+    const now = new Date();
+    const auction = await this.prisma.auction.findUnique({
+      where: { id: auctionId },
+      select: {
+        id: true,
+        startsAt: true,
+        endsAt: true,
+        startingPrice: true,
+        reservePrice: true,
+        minIncrement: true,
+        result: true,
+        winningBidId: true,
+        resultConfirmedAt: true,
+        vehicle: {
+          select: {
+            id: true,
+            vin: true,
+            make: true,
+            model: true,
+            year: true,
+            mileageKm: true,
+            batteryCapacityKwh: true,
+            batteryHealthPercent: true,
+            rangeKm: true,
+            registrationDate: true,
+            conditionNotes: true,
+            photoUrls: true,
+            city: true,
+            country: true,
+          },
+        },
+        bids: {
+          orderBy: [{ amount: 'desc' }, { placedAt: 'asc' }, { id: 'asc' }],
+          select: {
+            id: true,
+            amount: true,
+            placedAt: true,
+            dealer: {
+              select: {
+                id: true,
+                name: true,
+                dealershipName: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!auction) {
+      throw new NotFoundException('Auction not found');
+    }
+
+    const highestBid = auction.bids[0] ?? null;
+
+    return {
+      id: auction.id,
+      status: deriveAuctionStatus(auction.startsAt, auction.endsAt, now),
+      startsAt: auction.startsAt,
+      endsAt: auction.endsAt,
+      startingPrice: auction.startingPrice,
+      reservePrice: auction.reservePrice,
+      minIncrement: auction.minIncrement,
+      reserveMet: Boolean(
+        highestBid && highestBid.amount >= auction.reservePrice,
+      ),
+      result: auction.result,
+      winningBidId: auction.winningBidId,
+      resultConfirmedAt: auction.resultConfirmedAt,
+      vehicle: {
+        ...auction.vehicle,
+        registrationDate: auction.vehicle.registrationDate
+          .toISOString()
+          .slice(0, 10),
+        batteryCapacityKwh: auction.vehicle.batteryCapacityKwh.toNumber(),
+        batteryHealthPercent: auction.vehicle.batteryHealthPercent.toNumber(),
+      },
+      bids: auction.bids,
+    };
+  }
 
   async listAdminAuctions(): Promise<AdminAuctionListItem[]> {
     const now = new Date();

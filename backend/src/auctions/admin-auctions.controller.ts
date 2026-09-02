@@ -25,6 +25,12 @@ export class AdminAuctionsController {
     return this.auctionsService.listAdminAuctions();
   }
 
+  @Get(':auctionId')
+  @Header('Cache-Control', 'private, no-store')
+  getDetail(@Param('auctionId', new ParseUUIDPipe()) auctionId: string) {
+    return this.auctionsService.getAdminAuctionDetail(auctionId);
+  }
+
   @Post()
   create(@Body() createVehicleAuctionDto: CreateVehicleAuctionDto) {
     return this.auctionsService.create(createVehicleAuctionDto);

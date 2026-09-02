@@ -28,6 +28,7 @@ describe('App (e2e)', () => {
   let app: INestApplication<App>;
   const createAuction = vi.fn();
   const confirmResult = vi.fn();
+  const getAdminAuctionDetail = vi.fn();
   const getDealerAuctionDetail = vi.fn();
   const listAdminAuctions = vi.fn();
   const listDealerBids = vi.fn();
@@ -74,6 +75,7 @@ describe('App (e2e)', () => {
       .overrideProvider(AuctionsService)
       .useValue({
         listDealerAuctions: vi.fn(),
+        getAdminAuctionDetail,
         getDealerAuctionDetail,
         listAdminAuctions,
         create: createAuction,
@@ -407,6 +409,115 @@ describe('App (e2e)', () => {
         .expect(400);
 
       expect(confirmResult).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('admin auction detail', () => {
+    const auctionId = '20000000-0000-4000-8000-000000000004';
+
+    beforeEach(() => {
+      getAdminAuctionDetail.mockReset();
+    });
+
+    it('returns the full auction detail to an admin', async () => {
+      getAdminAuctionDetail.mockResolvedValue({
+        id: auctionId,
+        status: 'ENDED',
+        startsAt: new Date('2030-01-01T10:00:00.000Z'),
+        endsAt: new Date('2030-01-01T12:00:00.000Z'),
+        startingPrice: 20_000,
+        reservePrice: 22_000,
+        minIncrement: 250,
+        reserveMet: true,
+        result: null,
+        winningBidId: null,
+        resultConfirmedAt: null,
+        vehicle: {
+          id: 'vehicle-id',
+          vin: '5YJ3E7EA1KF000001',
+          make: 'Tesla',
+          model: 'Model 3',
+          year: 2022,
+          mileageKm: 32_000,
+          batteryCapacityKwh: 75.5,
+          batteryHealthPercent: 92.25,
+          rangeKm: 480,
+          registrationDate: '2022-03-15',
+          conditionNotes: 'Minor cosmetic wear.',
+          photoUrls: ['https://example.com/vehicle.jpg'],
+          city: 'Madrid',
+          country: 'Spain',
+        },
+        bids: [
+          {
+            id: 'bid-id',
+            amount: 23_000,
+            placedAt: new Date('2030-01-01T11:30:00.000Z'),
+            dealer: {
+              id: 'dealer-id',
+              name: 'Sofia García',
+              dealershipName: 'Iberia EV',
+            },
+          },
+        ],
+      });
+      const adminLogin = await login('admin@aampere.test');
+
+      const response = await request(app.getHttpServer())
+        .get(`/admin/auctions/${auctionId}`)
+        .set('Authorization', `Bearer ${adminLogin.body.accessToken}`)
+        .expect(200);
+
+      expect(getAdminAuctionDetail).toHaveBeenCalledWith(auctionId);
+      expect(response.headers['cache-control']).toBe('private, no-store');
+      expect(response.body).toMatchObject({
+        id: auctionId,
+        status: 'ENDED',
+        startsAt: '2030-01-01T10:00:00.000Z',
+        reservePrice: 22_000,
+        reserveMet: true,
+        vehicle: {
+          vin: '5YJ3E7EA1KF000001',
+          registrationDate: '2022-03-15',
+        },
+        bids: [
+          {
+            amount: 23_000,
+            placedAt: '2030-01-01T11:30:00.000Z',
+            dealer: { dealershipName: 'Iberia EV' },
+          },
+        ],
+      });
+    });
+
+    it('rejects dealers without calling the service', async () => {
+      const dealerLogin = await login('sofia@iberiaev.test');
+
+      await request(app.getHttpServer())
+        .get(`/admin/auctions/${auctionId}`)
+        .set('Authorization', `Bearer ${dealerLogin.body.accessToken}`)
+        .expect(403);
+
+      expect(getAdminAuctionDetail).not.toHaveBeenCalled();
+    });
+
+    it('requires authentication', async () => {
+      await request(app.getHttpServer())
+        .get(`/admin/auctions/${auctionId}`)
+        .expect(401);
+
+      expect(getAdminAuctionDetail).not.toHaveBeenCalled();
+    });
+
+    it('rejects an invalid auction id before calling the service', async () => {
+      const adminLogin = await login('admin@aampere.test');
+
+      await request(app.getHttpServer())
+        .get('/admin/auctions/not-a-uuid')
+        .set('Authorization', `Bearer ${adminLogin.body.accessToken}`)
+        .expect(400);
+
+      expect(getAdminAuctionDetail).not.toHaveBeenCalled();
     });
   });
 

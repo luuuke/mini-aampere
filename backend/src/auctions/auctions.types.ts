@@ -89,6 +89,46 @@ export interface AdminAuctionListItem {
   };
 }
 
+export interface AdminAuctionDetail {
+  id: string;
+  status: AuctionStatus;
+  startsAt: Date;
+  endsAt: Date;
+  startingPrice: number;
+  reservePrice: number;
+  minIncrement: number;
+  reserveMet: boolean;
+  result: 'SOLD' | 'UNSOLD' | null;
+  winningBidId: string | null;
+  resultConfirmedAt: Date | null;
+  vehicle: {
+    id: string;
+    vin: string;
+    make: string;
+    model: string;
+    year: number;
+    mileageKm: number;
+    batteryCapacityKwh: number;
+    batteryHealthPercent: number;
+    rangeKm: number;
+    registrationDate: string;
+    conditionNotes: string | null;
+    photoUrls: string[];
+    city: string;
+    country: string;
+  };
+  bids: {
+    id: string;
+    amount: number;
+    placedAt: Date;
+    dealer: {
+      id: string;
+      name: string;
+      dealershipName: string | null;
+    };
+  }[];
+}
+
 export interface AdminAuctionCreationResult {
   id: string;
   status: AuctionStatus;
