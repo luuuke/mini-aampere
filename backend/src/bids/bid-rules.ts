@@ -18,6 +18,19 @@ export type BidValidationResult =
       minimumAmount: number;
     };
 
+export function calculateMinimumBidAmount({
+  startingPrice,
+  minIncrement,
+  previousBidAmount,
+}: Pick<
+  PlaceBidRulesInput,
+  'startingPrice' | 'minIncrement' | 'previousBidAmount'
+>): number {
+  return previousBidAmount !== null
+    ? previousBidAmount + minIncrement
+    : startingPrice;
+}
+
 export function validateBid({
   startsAt,
   endsAt,
@@ -30,10 +43,11 @@ export function validateBid({
   if (now < startsAt) return { valid: false, reason: 'NOT_STARTED' };
   if (now >= endsAt) return { valid: false, reason: 'ENDED' };
 
-  const minimumAmount =
-    previousBidAmount !== null
-      ? previousBidAmount + minIncrement
-      : startingPrice;
+  const minimumAmount = calculateMinimumBidAmount({
+    startingPrice,
+    minIncrement,
+    previousBidAmount,
+  });
 
   if (amount < minimumAmount) {
     return { valid: false, reason: 'AMOUNT_TOO_LOW', minimumAmount };

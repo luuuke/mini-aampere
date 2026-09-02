@@ -7,11 +7,14 @@ import {
 import { Prisma } from '../generated/prisma/client.js';
 import type { AuctionResult } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { calculateMinimumBidAmount } from '../bids/bid-rules.js';
+import { deriveDealerBidStatus } from '../bids/bid-status.js';
 import { resolveAuctionWindow } from './auction-creation-rules.js';
 import { decideAuctionResult } from './auction-result-rules.js';
 import { deriveAuctionStatus } from './auction-status.js';
 import type {
   AdminAuctionCreationResult,
+  DealerAuctionDetail,
   DealerAuctionListItem,
 } from './auctions.types.js';
 import type { CreateVehicleAuctionDto } from './dto/create-vehicle-auction.dto.js';
@@ -338,5 +341,106 @@ export class AuctionsService {
         },
       }))
       .sort(compareDealerAuctions);
+  }
+
+  async getDealerAuctionDetail(
+    auctionId: string,
+    dealerId: string,
+  ): Promise<DealerAuctionDetail> {
+    const now = new Date();
+    const auction = await this.prisma.auction.findFirst({
+      where: {
+        id: auctionId,
+        OR: [
+          { endsAt: { gt: now } },
+          {
+            bids: {
+              some: { dealerId },
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        startsAt: true,
+        endsAt: true,
+        startingPrice: true,
+        minIncrement: true,
+        result: true,
+        winningBidId: true,
+        vehicle: {
+          select: {
+            id: true,
+            vin: true,
+            make: true,
+            model: true,
+            year: true,
+            mileageKm: true,
+            batteryCapacityKwh: true,
+            batteryHealthPercent: true,
+            rangeKm: true,
+            registrationDate: true,
+            conditionNotes: true,
+            photoUrls: true,
+            city: true,
+            country: true,
+          },
+        },
+        bids: {
+          where: { dealerId },
+          orderBy: [{ placedAt: 'desc' }, { id: 'desc' }],
+          take: 1,
+          select: {
+            id: true,
+            amount: true,
+            placedAt: true,
+          },
+        },
+      },
+    });
+
+    if (!auction) {
+      throw new NotFoundException('Auction not found');
+    }
+
+    const status = deriveAuctionStatus(auction.startsAt, auction.endsAt, now);
+    const dealerBid = auction.bids[0] ?? null;
+
+    return {
+      id: auction.id,
+      status,
+      startsAt: auction.startsAt,
+      endsAt: auction.endsAt,
+      startingPrice: auction.startingPrice,
+      minIncrement: auction.minIncrement,
+      nextMinimumBidAmount:
+        status === 'LIVE'
+          ? calculateMinimumBidAmount({
+              startingPrice: auction.startingPrice,
+              minIncrement: auction.minIncrement,
+              previousBidAmount: dealerBid?.amount ?? null,
+            })
+          : null,
+      myBid: dealerBid
+        ? {
+            amount: dealerBid.amount,
+            placedAt: dealerBid.placedAt,
+            status: deriveDealerBidStatus({
+              auctionStatus: status,
+              auctionResult: auction.result,
+              winningBidId: auction.winningBidId,
+              dealerBidId: dealerBid.id,
+            }),
+          }
+        : null,
+      vehicle: {
+        ...auction.vehicle,
+        registrationDate: auction.vehicle.registrationDate
+          .toISOString()
+          .slice(0, 10),
+        batteryCapacityKwh: auction.vehicle.batteryCapacityKwh.toNumber(),
+        batteryHealthPercent: auction.vehicle.batteryHealthPercent.toNumber(),
+      },
+    };
   }
 }

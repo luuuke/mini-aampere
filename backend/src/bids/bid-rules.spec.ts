@@ -1,5 +1,27 @@
-import { validateBid } from './bid-rules.js';
+import { calculateMinimumBidAmount, validateBid } from './bid-rules.js';
 import type { PlaceBidRulesInput } from './bid-rules.js';
+
+describe('calculateMinimumBidAmount', () => {
+  it('uses the starting price for a dealer without a previous bid', () => {
+    expect(
+      calculateMinimumBidAmount({
+        startingPrice: 20_000,
+        minIncrement: 250,
+        previousBidAmount: null,
+      }),
+    ).toBe(20_000);
+  });
+
+  it('adds the increment to the dealer previous bid', () => {
+    expect(
+      calculateMinimumBidAmount({
+        startingPrice: 20_000,
+        minIncrement: 250,
+        previousBidAmount: 21_000,
+      }),
+    ).toBe(21_250);
+  });
+});
 
 describe('bid-rules', () => {
   it('rejects a bid for an auction that has already ended', () => {

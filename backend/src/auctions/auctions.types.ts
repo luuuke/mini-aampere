@@ -1,3 +1,5 @@
+import type { BidStatus } from '../bids/bids.types.js';
+
 export type AuctionStatus = 'SCHEDULED' | 'LIVE' | 'ENDED';
 
 export interface DealerAuctionListItem {
@@ -16,6 +18,37 @@ export interface DealerAuctionListItem {
     batteryCapacityKwh: number;
     batteryHealthPercent: number;
     rangeKm: number;
+    photoUrls: string[];
+    city: string;
+    country: string;
+  };
+}
+
+export interface DealerAuctionDetail {
+  id: string;
+  status: AuctionStatus;
+  startsAt: Date;
+  endsAt: Date;
+  startingPrice: number;
+  minIncrement: number;
+  nextMinimumBidAmount: number | null;
+  myBid: {
+    amount: number;
+    placedAt: Date;
+    status: BidStatus;
+  } | null;
+  vehicle: {
+    id: string;
+    vin: string;
+    make: string;
+    model: string;
+    year: number;
+    mileageKm: number;
+    batteryCapacityKwh: number;
+    batteryHealthPercent: number;
+    rangeKm: number;
+    registrationDate: string;
+    conditionNotes: string | null;
     photoUrls: string[];
     city: string;
     country: string;

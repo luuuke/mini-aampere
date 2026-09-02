@@ -28,6 +28,7 @@ describe('App (e2e)', () => {
   let app: INestApplication<App>;
   const createAuction = vi.fn();
   const confirmResult = vi.fn();
+  const getDealerAuctionDetail = vi.fn();
   const listDealerBids = vi.fn();
 
   beforeAll(async () => {
@@ -72,6 +73,7 @@ describe('App (e2e)', () => {
       .overrideProvider(AuctionsService)
       .useValue({
         listDealerAuctions: vi.fn(),
+        getDealerAuctionDetail,
         create: createAuction,
         confirmResult,
       })
@@ -215,6 +217,105 @@ describe('App (e2e)', () => {
       await request(app.getHttpServer()).get('/bids').expect(401);
 
       expect(listDealerBids).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('dealer auction detail', () => {
+    const auctionId = '20000000-0000-4000-8000-000000000002';
+
+    beforeEach(() => {
+      getDealerAuctionDetail.mockReset();
+    });
+
+    it('returns a private detail for the authenticated dealer', async () => {
+      getDealerAuctionDetail.mockResolvedValue({
+        id: auctionId,
+        status: 'LIVE',
+        startsAt: new Date('2030-01-01T10:00:00.000Z'),
+        endsAt: new Date('2030-01-01T14:00:00.000Z'),
+        startingPrice: 20_000,
+        minIncrement: 250,
+        nextMinimumBidAmount: 21_250,
+        myBid: {
+          amount: 21_000,
+          placedAt: new Date('2030-01-01T11:30:00.000Z'),
+          status: 'ACTIVE',
+        },
+        vehicle: {
+          id: 'vehicle-id',
+          vin: '5YJ3E7EA1KF000001',
+          make: 'Tesla',
+          model: 'Model 3',
+          year: 2022,
+          mileageKm: 32_000,
+          batteryCapacityKwh: 75.5,
+          batteryHealthPercent: 92.25,
+          rangeKm: 480,
+          registrationDate: '2022-03-15',
+          conditionNotes: 'Minor cosmetic wear.',
+          photoUrls: ['https://example.com/vehicle.jpg'],
+          city: 'Madrid',
+          country: 'Spain',
+        },
+      });
+      const dealerLogin = await login('sofia@iberiaev.test');
+
+      const response = await request(app.getHttpServer())
+        .get(`/auctions/${auctionId}`)
+        .set('Authorization', `Bearer ${dealerLogin.body.accessToken}`)
+        .expect(200);
+
+      expect(getDealerAuctionDetail).toHaveBeenCalledWith(
+        auctionId,
+        'dealer-id',
+      );
+      expect(response.headers['cache-control']).toBe('private, no-store');
+      expect(response.body).toMatchObject({
+        id: auctionId,
+        status: 'LIVE',
+        startsAt: '2030-01-01T10:00:00.000Z',
+        myBid: {
+          amount: 21_000,
+          placedAt: '2030-01-01T11:30:00.000Z',
+          status: 'ACTIVE',
+        },
+        vehicle: {
+          vin: '5YJ3E7EA1KF000001',
+          registrationDate: '2022-03-15',
+        },
+      });
+      expect(response.body).not.toHaveProperty('reservePrice');
+      expect(response.body).not.toHaveProperty('winningBid');
+    });
+
+    it('rejects admins without calling the service', async () => {
+      const adminLogin = await login('admin@aampere.test');
+
+      await request(app.getHttpServer())
+        .get(`/auctions/${auctionId}`)
+        .set('Authorization', `Bearer ${adminLogin.body.accessToken}`)
+        .expect(403);
+
+      expect(getDealerAuctionDetail).not.toHaveBeenCalled();
+    });
+
+    it('requires authentication', async () => {
+      await request(app.getHttpServer())
+        .get(`/auctions/${auctionId}`)
+        .expect(401);
+
+      expect(getDealerAuctionDetail).not.toHaveBeenCalled();
+    });
+
+    it('rejects an invalid auction id before calling the service', async () => {
+      const dealerLogin = await login('sofia@iberiaev.test');
+
+      await request(app.getHttpServer())
+        .get('/auctions/not-a-uuid')
+        .set('Authorization', `Bearer ${dealerLogin.body.accessToken}`)
+        .expect(400);
+
+      expect(getDealerAuctionDetail).not.toHaveBeenCalled();
     });
   });
 
