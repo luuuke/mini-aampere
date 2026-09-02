@@ -3,7 +3,10 @@ import { Providers } from "@/app/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Aampere Dealer Auctions",
+  title: {
+    default: "Aampere Auctions",
+    template: "%s · Aampere",
+  },
   description: "A blind, sealed-bid marketplace for electric vehicles.",
 };
 

@@ -12,13 +12,16 @@ npm run dev
 ```
 
 Open [http://localhost:3001](http://localhost:3001). The NestJS API is expected at
-`NEXT_PUBLIC_API_URL` and defaults to `http://localhost:3000` in the example environment.
+`API_URL` and defaults to `http://localhost:3000` in the example environment. Next.js
+proxies browser requests from `/api/*` to that backend URL.
 
 ## Project structure
 
-- `src/app/` — App Router layouts, pages, and the TanStack Query provider.
+- `src/app/` — App Router layouts, login, and role-specific pages.
+- `src/components/` — shared shell, auth guards, auction cards, and shadcn/ui components.
+- `src/features/` — authentication and dealer auction API/query types.
 - `src/components/ui/` — shadcn/ui components owned by this project.
-- `src/lib/` — shared frontend utilities.
+- `src/lib/` — shared authentication, API client, and UI utilities.
 
 Add more shadcn/ui components from this directory with:
 
