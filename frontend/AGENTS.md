@@ -46,6 +46,14 @@ Build the frontend as a clear, polished B2B auction dashboard using Next.js and 
 
 Every data-driven view should handle loading, error, and empty states clearly.
 
+## Verification
+
+- In Codex, run production build checks with `npm run build -- --webpack`. Do not run the bare
+  `npm run build` command: its default Turbopack path attempts to bind an internal port while
+  processing CSS and fails in the sandbox with `Operation not permitted`.
+- Treat a successful webpack production build as the frontend build verification. Do not retry or
+  escalate the known Turbopack sandbox failure.
+
 ## Forms
 
 - Show inline validation and backend submission errors clearly.
