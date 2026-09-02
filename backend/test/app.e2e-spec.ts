@@ -8,6 +8,7 @@ import { Roles } from '../src/auth/decorators/roles.decorator.js';
 import { UserRole } from '../src/generated/prisma/client.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { AuctionsService } from '../src/auctions/auctions.service.js';
+import { BidsService } from '../src/bids/bids.service.js';
 
 @Controller('test-only')
 class ProtectedTestController {
@@ -27,6 +28,7 @@ describe('App (e2e)', () => {
   let app: INestApplication<App>;
   const createAuction = vi.fn();
   const confirmResult = vi.fn();
+  const listDealerBids = vi.fn();
 
   beforeAll(async () => {
     process.env['JWT_SECRET'] = 'e2e-test-secret';
@@ -73,6 +75,8 @@ describe('App (e2e)', () => {
         create: createAuction,
         confirmResult,
       })
+      .overrideProvider(BidsService)
+      .useValue({ listDealerBids })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -150,6 +154,68 @@ describe('App (e2e)', () => {
       .get('/test-only/admin')
       .set('Authorization', `Bearer ${adminLogin.body.accessToken}`)
       .expect(200, { role: UserRole.ADMIN });
+  });
+
+  describe('dealer bid listing', () => {
+    beforeEach(() => {
+      listDealerBids.mockReset();
+    });
+
+    it('lists bids for the authenticated dealer', async () => {
+      listDealerBids.mockResolvedValue([
+        {
+          auctionId: 'auction-id',
+          vehicle: { make: 'Tesla', model: 'Model 3', year: 2022 },
+          bid: {
+            amount: 21_000,
+            placedAt: new Date('2030-01-01T11:30:00.000Z'),
+            status: 'ACTIVE',
+            nextMinimumAmount: 21_250,
+          },
+          auctionStatus: 'LIVE',
+          endsAt: new Date('2030-01-01T14:00:00.000Z'),
+        },
+      ]);
+      const dealerLogin = await login('sofia@iberiaev.test');
+
+      const response = await request(app.getHttpServer())
+        .get('/bids')
+        .set('Authorization', `Bearer ${dealerLogin.body.accessToken}`)
+        .expect(200);
+
+      expect(listDealerBids).toHaveBeenCalledWith('dealer-id');
+      expect(response.body).toEqual([
+        {
+          auctionId: 'auction-id',
+          vehicle: { make: 'Tesla', model: 'Model 3', year: 2022 },
+          bid: {
+            amount: 21_000,
+            placedAt: '2030-01-01T11:30:00.000Z',
+            status: 'ACTIVE',
+            nextMinimumAmount: 21_250,
+          },
+          auctionStatus: 'LIVE',
+          endsAt: '2030-01-01T14:00:00.000Z',
+        },
+      ]);
+    });
+
+    it('rejects admins without calling the service', async () => {
+      const adminLogin = await login('admin@aampere.test');
+
+      await request(app.getHttpServer())
+        .get('/bids')
+        .set('Authorization', `Bearer ${adminLogin.body.accessToken}`)
+        .expect(403);
+
+      expect(listDealerBids).not.toHaveBeenCalled();
+    });
+
+    it('requires authentication', async () => {
+      await request(app.getHttpServer()).get('/bids').expect(401);
+
+      expect(listDealerBids).not.toHaveBeenCalled();
+    });
   });
 
   describe('admin auction result confirmation', () => {

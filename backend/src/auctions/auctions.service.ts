@@ -9,9 +9,9 @@ import type { AuctionResult } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { resolveAuctionWindow } from './auction-creation-rules.js';
 import { decideAuctionResult } from './auction-result-rules.js';
+import { deriveAuctionStatus } from './auction-status.js';
 import type {
   AdminAuctionCreationResult,
-  AuctionStatus,
   DealerAuctionListItem,
 } from './auctions.types.js';
 import type { CreateVehicleAuctionDto } from './dto/create-vehicle-auction.dto.js';
@@ -21,22 +21,6 @@ const MAX_TRANSACTION_ATTEMPTS = 3;
 interface ConfirmResultInput {
   auctionId: string;
   result: AuctionResult;
-}
-
-function deriveAuctionStatus(
-  startsAt: Date,
-  endsAt: Date,
-  now: Date,
-): AuctionStatus {
-  if (now < startsAt) {
-    return 'SCHEDULED';
-  }
-
-  if (now < endsAt) {
-    return 'LIVE';
-  }
-
-  return 'ENDED';
 }
 
 function compareDealerAuctions(
