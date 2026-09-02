@@ -131,7 +131,11 @@ function UpdateBidAction({
   if (bid.bid.status !== "ACTIVE") return null;
 
   return (
-    <Button size="sm" onClick={() => onUpdate(bid)}>
+    <Button
+      size="sm"
+      className="w-full sm:w-auto"
+      onClick={() => onUpdate(bid)}
+    >
       Update bid
     </Button>
   );
@@ -146,11 +150,11 @@ export function DealerBidList({
 }) {
   return (
     <>
-      <div className="hidden overflow-hidden rounded-xl border bg-card md:block">
+      <div className="hidden overflow-hidden rounded-xl border bg-card lg:block">
         <table className="w-full table-fixed text-left text-sm">
           <thead className="bg-muted/70 text-xs font-medium text-muted-foreground">
             <tr>
-              <th scope="col" className="w-[34%] px-5 py-3 font-medium">
+              <th scope="col" className="w-[33%] px-5 py-3 font-medium">
                 Vehicle
               </th>
               <th scope="col" className="w-[17%] px-4 py-3 font-medium">
@@ -159,10 +163,10 @@ export function DealerBidList({
               <th scope="col" className="w-[18%] px-4 py-3 font-medium">
                 Your bid
               </th>
-              <th scope="col" className="w-[21%] px-4 py-3 font-medium">
+              <th scope="col" className="w-[20%] px-4 py-3 font-medium">
                 Timing
               </th>
-              <th scope="col" className="w-[10%] px-5 py-3">
+              <th scope="col" className="w-[12%] px-3 py-3">
                 <span className="sr-only">Action</span>
               </th>
             </tr>
@@ -182,7 +186,7 @@ export function DealerBidList({
                 <td className="px-4 py-4">
                   <BidTiming bid={bid} />
                 </td>
-                <td className="px-5 py-4 text-right">
+                <td className="px-3 py-4 text-right">
                   <UpdateBidAction bid={bid} onUpdate={onUpdate} />
                 </td>
               </tr>
@@ -191,7 +195,7 @@ export function DealerBidList({
         </table>
       </div>
 
-      <ul className="grid gap-3 md:hidden">
+      <ul className="grid gap-3 lg:hidden">
         {bids.map((bid) => (
           <li key={bid.auctionId} className="rounded-xl border bg-card p-4">
             <div className="flex items-start justify-between gap-3">
@@ -199,7 +203,7 @@ export function DealerBidList({
               <BidStatusBadge status={bid.bid.status} />
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-4 border-t pt-4">
+            <div className="mt-5 grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2">
               <div>
                 <p className="mb-1 text-xs text-muted-foreground">Your bid</p>
                 <OwnBid bid={bid} />
