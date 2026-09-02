@@ -90,8 +90,12 @@ export function DealerAuctionsScreen() {
 
       {auctionsQuery.data && auctionsQuery.data.length > 0 ? (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {auctionsQuery.data.map((auction) => (
-            <AuctionCard key={auction.id} auction={auction} />
+          {auctionsQuery.data.map((auction, index) => (
+            <AuctionCard
+              key={auction.id}
+              auction={auction}
+              priority={index === 0}
+            />
           ))}
         </div>
       ) : null}

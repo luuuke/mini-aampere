@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   BatteryCharging,
   CalendarDays,
@@ -26,7 +27,13 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
   minute: "2-digit",
 });
 
-function VehicleImage({ auction }: { auction: DealerAuction }) {
+function VehicleImage({
+  auction,
+  priority,
+}: {
+  auction: DealerAuction;
+  priority: boolean;
+}) {
   const [hasError, setHasError] = useState(false);
   const photoUrl = auction.vehicle.photoUrls[0];
 
@@ -43,6 +50,7 @@ function VehicleImage({ auction }: { auction: DealerAuction }) {
       src={photoUrl}
       alt={`${auction.vehicle.year} ${auction.vehicle.make} ${auction.vehicle.model}`}
       fill
+      priority={priority}
       sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
       className="object-cover transition-transform duration-300 group-hover/card:scale-[1.015]"
       onError={() => setHasError(true)}
@@ -70,87 +78,99 @@ function VehicleStat({
   );
 }
 
-export function AuctionCard({ auction }: { auction: DealerAuction }) {
+export function AuctionCard({
+  auction,
+  priority = false,
+}: {
+  auction: DealerAuction;
+  priority?: boolean;
+}) {
   const { vehicle } = auction;
   const isLive = auction.status === "LIVE";
 
   return (
-    <Card className="gap-0 py-0 shadow-none transition-shadow hover:shadow-sm">
-      <div className="relative aspect-[16/9] overflow-hidden bg-muted">
-        <VehicleImage auction={auction} />
-        <Badge
-          variant="outline"
-          className={
-            isLive
-              ? "absolute top-3 left-3 border-emerald-200 bg-emerald-50 text-emerald-800"
-              : "absolute top-3 left-3 border-white/80 bg-white/90 text-foreground"
-          }
-        >
-          <span
-            aria-hidden="true"
+    <Link
+      href={`/dealer/auctions/${auction.id}`}
+      aria-label={`View ${vehicle.year} ${vehicle.make} ${vehicle.model} auction`}
+      className="group/card block rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+    >
+      <Card className="gap-0 py-0 shadow-none transition-shadow group-hover/card:shadow-sm">
+        <div className="relative aspect-[16/9] overflow-hidden bg-muted">
+          <VehicleImage auction={auction} priority={priority} />
+          <Badge
+            variant="outline"
             className={
               isLive
-                ? "size-1.5 rounded-full bg-primary"
-                : "size-1.5 rounded-full bg-muted-foreground"
+                ? "absolute top-3 left-3 border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "absolute top-3 left-3 border-white/80 bg-white/90 text-foreground"
             }
-          />
-          {isLive ? "Live" : "Scheduled"}
-        </Badge>
-      </div>
-
-      <CardContent className="px-5 py-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h2 className="truncate font-heading text-lg font-semibold tracking-tight">
-              {vehicle.make} {vehicle.model}
-            </h2>
-            <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-              <MapPin aria-hidden="true" className="size-3.5 shrink-0" />
-              <span className="truncate">
-                {vehicle.city}, {vehicle.country}
-              </span>
-            </p>
-          </div>
-          <span className="rounded-md bg-muted px-2 py-1 text-xs font-semibold">
-            {vehicle.year}
-          </span>
+          >
+            <span
+              aria-hidden="true"
+              className={
+                isLive
+                  ? "size-1.5 rounded-full bg-primary"
+                  : "size-1.5 rounded-full bg-muted-foreground"
+              }
+            />
+            {isLive ? "Live" : "Scheduled"}
+          </Badge>
         </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-3 border-y py-4">
-          <VehicleStat
-            icon={Gauge}
-            label="Mileage"
-            value={`${numberFormatter.format(vehicle.mileageKm)} km`}
-          />
-          <VehicleStat
-            icon={BatteryCharging}
-            label="Battery"
-            value={`${vehicle.batteryCapacityKwh} kWh`}
-          />
-          <VehicleStat
-            icon={BatteryCharging}
-            label="SoH"
-            value={`${vehicle.batteryHealthPercent}%`}
-          />
-        </div>
-
-        <div className="mt-4">
-          {isLive ? (
-            <AuctionCountdown endsAt={auction.endsAt} />
-          ) : (
-            <div className="flex items-center gap-2 text-sm">
-              <CalendarDays
-                aria-hidden="true"
-                className="size-4 text-muted-foreground"
-              />
-              <span className="text-muted-foreground">Starts</span>
-              <time dateTime={auction.startsAt} className="font-medium">
-                {dateFormatter.format(new Date(auction.startsAt))}
-              </time>
+        <CardContent className="px-5 py-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <h2 className="truncate font-heading text-lg font-semibold tracking-tight">
+                {vehicle.make} {vehicle.model}
+              </h2>
+              <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                <MapPin aria-hidden="true" className="size-3.5 shrink-0" />
+                <span className="truncate">
+                  {vehicle.city}, {vehicle.country}
+                </span>
+              </p>
             </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+            <span className="rounded-md bg-muted px-2 py-1 text-xs font-semibold">
+              {vehicle.year}
+            </span>
+          </div>
+
+          <div className="mt-5 grid grid-cols-3 gap-3 border-y py-4">
+            <VehicleStat
+              icon={Gauge}
+              label="Mileage"
+              value={`${numberFormatter.format(vehicle.mileageKm)} km`}
+            />
+            <VehicleStat
+              icon={BatteryCharging}
+              label="Battery"
+              value={`${vehicle.batteryCapacityKwh} kWh`}
+            />
+            <VehicleStat
+              icon={BatteryCharging}
+              label="SoH"
+              value={`${vehicle.batteryHealthPercent}%`}
+            />
+          </div>
+
+          <div className="mt-4">
+            {isLive ? (
+              <AuctionCountdown endsAt={auction.endsAt} />
+            ) : (
+              <div className="flex items-center gap-2 text-sm">
+                <CalendarDays
+                  aria-hidden="true"
+                  className="size-4 text-muted-foreground"
+                />
+                <span className="text-muted-foreground">Starts</span>
+                <time dateTime={auction.startsAt} className="font-medium">
+                  {dateFormatter.format(new Date(auction.startsAt))}
+                </time>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
