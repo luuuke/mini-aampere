@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { listDealerBids } from "@/features/bids/dealer/api";
 import { BidListSkeleton } from "@/features/bids/dealer/components/bid-list-skeleton";
 import { DealerBidList } from "@/features/bids/dealer/components/dealer-bid-list";
-import { UpdateBidDialog } from "@/features/bids/dealer/components/update-bid-dialog";
 import { dealerBidQueryKeys } from "@/features/bids/dealer/query-keys";
 import type {
   DealerBidListItem,
@@ -58,7 +57,6 @@ function countForFilter(bids: DealerBidListItem[], filter: BidFilter) {
 
 export function DealerBidsScreen() {
   const [activeFilter, setActiveFilter] = useState<BidFilter>("ALL");
-  const [selectedBid, setSelectedBid] = useState<DealerBidListItem | null>(null);
   const { accessToken } = useAuth();
   const bidsQuery = useQuery({
     queryKey: dealerBidQueryKeys.list(),
@@ -178,15 +176,7 @@ export function DealerBidsScreen() {
       ) : null}
 
       {filteredBids.length > 0 ? (
-        <DealerBidList bids={filteredBids} onUpdate={setSelectedBid} />
-      ) : null}
-
-      {selectedBid ? (
-        <UpdateBidDialog
-          key={selectedBid.auctionId}
-          bid={selectedBid}
-          onClose={() => setSelectedBid(null)}
-        />
+        <DealerBidList bids={filteredBids} />
       ) : null}
     </div>
   );

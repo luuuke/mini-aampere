@@ -1,6 +1,7 @@
 import { CarFront } from "lucide-react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { AuctionCountdown } from "@/features/auctions/dealer/components/auction-countdown";
 import type {
   DealerBidListItem,
@@ -121,33 +122,78 @@ function BidTiming({ bid }: { bid: DealerBidListItem }) {
   );
 }
 
-function UpdateBidAction({
-  bid,
-  onUpdate,
-}: {
-  bid: DealerBidListItem;
-  onUpdate: (bid: DealerBidListItem) => void;
-}) {
+function UpdateBidAction({ bid }: { bid: DealerBidListItem }) {
   if (bid.bid.status !== "ACTIVE") return null;
 
   return (
-    <Button
-      size="sm"
-      className="w-full sm:w-auto"
-      onClick={() => onUpdate(bid)}
+    <span
+      aria-hidden="true"
+      className={buttonVariants({ size: "sm", className: "w-full sm:w-auto" })}
     >
       Update bid
-    </Button>
+    </span>
   );
 }
 
-export function DealerBidList({
-  bids,
-  onUpdate,
-}: {
-  bids: DealerBidListItem[];
-  onUpdate: (bid: DealerBidListItem) => void;
-}) {
+function DesktopBidContent({ bid }: { bid: DealerBidListItem }) {
+  return (
+    <>
+      <span className="px-5 py-4">
+        <VehicleIdentity bid={bid} />
+      </span>
+      <span className="px-4 py-4">
+        <BidStatusBadge status={bid.bid.status} />
+      </span>
+      <span className="px-4 py-4">
+        <OwnBid bid={bid} />
+      </span>
+      <span className="px-4 py-4">
+        <BidTiming bid={bid} />
+      </span>
+      <span className="px-3 py-4 text-right">
+        <UpdateBidAction bid={bid} />
+      </span>
+    </>
+  );
+}
+
+function MobileBidContent({ bid }: { bid: DealerBidListItem }) {
+  return (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <VehicleIdentity bid={bid} />
+        <BidStatusBadge status={bid.bid.status} />
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2">
+        <div>
+          <p className="mb-1 text-xs text-muted-foreground">Your bid</p>
+          <OwnBid bid={bid} />
+        </div>
+        <div>
+          <p className="mb-1 text-xs text-muted-foreground">Timing</p>
+          <BidTiming bid={bid} />
+        </div>
+      </div>
+
+      {bid.bid.status === "ACTIVE" ? (
+        <div className="mt-4">
+          <UpdateBidAction bid={bid} />
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function getAuctionHref(bid: DealerBidListItem) {
+  return `/dealer/auctions/${bid.auctionId}`;
+}
+
+function getAuctionLinkLabel(bid: DealerBidListItem) {
+  return `View ${bid.vehicle.year} ${bid.vehicle.make} ${bid.vehicle.model} auction and update your bid`;
+}
+
+export function DealerBidList({ bids }: { bids: DealerBidListItem[] }) {
   return (
     <>
       <div className="hidden overflow-hidden rounded-xl border bg-card lg:block">
@@ -172,53 +218,50 @@ export function DealerBidList({
             </tr>
           </thead>
           <tbody>
-            {bids.map((bid) => (
-              <tr key={bid.auctionId} className="border-t first:border-t-0">
-                <td className="px-5 py-4">
-                  <VehicleIdentity bid={bid} />
-                </td>
-                <td className="px-4 py-4">
-                  <BidStatusBadge status={bid.bid.status} />
-                </td>
-                <td className="px-4 py-4">
-                  <OwnBid bid={bid} />
-                </td>
-                <td className="px-4 py-4">
-                  <BidTiming bid={bid} />
-                </td>
-                <td className="px-3 py-4 text-right">
-                  <UpdateBidAction bid={bid} onUpdate={onUpdate} />
-                </td>
-              </tr>
-            ))}
+            {bids.map((bid) => {
+              const rowClassName =
+                "grid grid-cols-[33%_17%_18%_20%_12%] items-center text-sm";
+
+              return (
+                <tr key={bid.auctionId} className="border-t first:border-t-0">
+                  <td colSpan={5} className="p-0">
+                    {bid.bid.status === "ACTIVE" ? (
+                      <Link
+                        href={getAuctionHref(bid)}
+                        aria-label={getAuctionLinkLabel(bid)}
+                        className={`${rowClassName} outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/40`}
+                      >
+                        <DesktopBidContent bid={bid} />
+                      </Link>
+                    ) : (
+                      <div className={rowClassName}>
+                        <DesktopBidContent bid={bid} />
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
 
       <ul className="grid gap-3 lg:hidden">
         {bids.map((bid) => (
-          <li key={bid.auctionId} className="rounded-xl border bg-card p-4">
-            <div className="flex items-start justify-between gap-3">
-              <VehicleIdentity bid={bid} />
-              <BidStatusBadge status={bid.bid.status} />
-            </div>
-
-            <div className="mt-5 grid grid-cols-1 gap-4 border-t pt-4 sm:grid-cols-2">
-              <div>
-                <p className="mb-1 text-xs text-muted-foreground">Your bid</p>
-                <OwnBid bid={bid} />
-              </div>
-              <div>
-                <p className="mb-1 text-xs text-muted-foreground">Timing</p>
-                <BidTiming bid={bid} />
-              </div>
-            </div>
-
+          <li key={bid.auctionId} className="overflow-hidden rounded-xl border bg-card">
             {bid.bid.status === "ACTIVE" ? (
-              <div className="mt-4">
-                <UpdateBidAction bid={bid} onUpdate={onUpdate} />
+              <Link
+                href={getAuctionHref(bid)}
+                aria-label={getAuctionLinkLabel(bid)}
+                className="block p-4 outline-none transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/40"
+              >
+                <MobileBidContent bid={bid} />
+              </Link>
+            ) : (
+              <div className="p-4">
+                <MobileBidContent bid={bid} />
               </div>
-            ) : null}
+            )}
           </li>
         ))}
       </ul>
